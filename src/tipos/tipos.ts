@@ -1,0 +1,67 @@
+// src/tipos/tipos.ts (o tipos/index.ts)
+
+export type Deporte = 'Fútbol' | 'Pádel' | 'Tenis' | 'Básquet';
+
+export interface Espacio {
+  id: string;
+  nombre: string;
+  deporte: Deporte;
+  complejo: string;
+  superficie: string;
+  iluminacion: boolean;
+  precioPorTurno: number;
+  datosJson?: string;
+}
+
+export interface Turno {
+  id: string;
+  espacioId: string;
+  fecha: string; // YYYY-MM-DD
+  horaInicio: string; // HH:mm
+  horaFin: string; // HH:mm
+  disponible: boolean;
+  precio: number;
+}
+
+export interface Reserva {
+  id: string;
+  usuarioId: string;
+  espacioId: string;
+  fecha: string;
+  horaInicio: string;
+  deporte: Deporte;
+  estado: 'confirmada' | 'cancelada' | 'pendiente';
+  datosJson?: string;
+}
+
+export interface ReservaFija {
+  id: string;
+  usuarioId: string;
+  espacioId: string;
+  diaSemana: 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
+  horaInicio: string;
+  deporte: Deporte;
+}
+
+export interface Usuario {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: 'cliente' | 'admin' | 'dueno';
+}
+
+// Estructuras de respuesta de la API
+export interface ApiResponse<T> {
+  datos: T;
+  meta?: {
+    total?: number;
+    pagina?: number;
+  };
+}
+
+export interface ApiError {
+  error: {
+    codigo: string;
+    mensaje: string;
+  };
+}
