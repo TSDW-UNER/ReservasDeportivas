@@ -1,37 +1,44 @@
 // src/servicios/clienteHttp.ts
-import { ApiResponse, ApiError } from '../tipos/tipos';
+export const USAR_MOCK = true; // Cambiar a false cuando conecten al backend real
 
-// Cambiar a false cuando la API real esté lista
-export const USAR_MOCK = true;
-
-const BASE_URL = 'https://api.reservasdeportivas.com/v1';
-
-export async function clienteHttp<T>(
-  endpoint: string,
-  opciones: RequestInit = {}
-): Promise<ApiResponse<T>> {
-  const token = 'MOCK_TOKEN_JWT_12345'; // Header Authorization configurado
-
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-    ...opciones.headers,
+export interface RespuestaApi<T> {
+  datos: T;
+  meta?: {
+    total?: number;
+    pagina?: number;
   };
+  error?: string;
+}
 
+const API_BASE_URL = 'https://api.reservasdeportivas.unER.edu.ar'; // Ejemplo
+
+export async function clienteHttp<T>(endpoint: string, opciones?: RequestInit): Promise<RespuestaApi<T>> {
   try {
-    const respuesta = await fetch(`${BASE_URL}${endpoint}`, {
+    const respuesta = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...opciones,
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        ...opciones?.headers,
+      },
     });
 
+    const json = await respuesta.json();
+
     if (!respuesta.ok) {
-      const errorData: ApiError = await respuesta.json();
-      throw new Error(errorData.error?.mensaje || 'Error en la petición servidor');
+      return {
+        datos: [] as unknown as T,
+        error: json.mensaje || 'Ocurrió un error en la petición',
+      };
     }
 
-    const datos: ApiResponse<T> = await respuesta.json();
-    return datos;
-  } catch (err: any) {
-    throw new Error(err.message || 'Error de red o conexión');
+    return {
+      datos: json.datos || json,
+      meta: json.meta,
+    };
+  } catch (error) {
+    return {
+      datos: [] as unknown as T,
+      error: 'Error de red o servidor no disponible',
+    };
   }
 }
