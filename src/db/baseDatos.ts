@@ -44,3 +44,11 @@ export function obtenerEspaciosLocal(): Espacio[] {
   const resultados = db.getAllSync(`SELECT datosJson FROM espacios;`) as { datosJson: string }[];
   return resultados.map(r => JSON.parse(r.datosJson));
 }
+import * as Network from 'expo-network';
+
+// ... tu código de SQLite (inicializarBaseDatos, guardarEspaciosLocal, etc.)
+
+export async function hayConexionInternet(): Promise<boolean> {
+  const estado = await Network.getNetworkStateAsync();
+  return Boolean(estado.isConnected && estado.isInternetReachable);
+}
