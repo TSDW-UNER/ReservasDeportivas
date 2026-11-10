@@ -57,4 +57,3 @@ export const espaciosServicio = {
     if (res.datos) guardarReservasLocal(res.datos);
     return res.datos;
   },
-};
