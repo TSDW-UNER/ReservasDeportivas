@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Espacio, Reserva } from '../tipos';
+import { Espacio, Reserva } from '../tipos/tipos';
 import * as Network from 'expo-network';
 
 const db = SQLite.openDatabaseSync('reservas_deportivas.db');
@@ -46,7 +46,6 @@ export function obtenerEspaciosLocal(): Espacio[] {
   return resultados.map(r => JSON.parse(r.datosJson));
 }
 
-// --- NUEVO: Guardar y obtener Reservas localmente en SQLite ---
 export function guardarReservasLocal(reservas: Reserva[]) {
   for (const res of reservas) {
     db.runSync(

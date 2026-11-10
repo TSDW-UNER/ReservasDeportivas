@@ -1,4 +1,3 @@
-// src/servicios/espaciosServicio.ts
 import { Espacio, Turno, Reserva } from '../tipos/tipos';
 import { MOCK_ESPACIOS, MOCK_TURNOS, MOCK_RESERVAS } from '../mocks/datosMock';
 import { clienteHttp, USAR_MOCK } from './clienteHttp';
@@ -57,3 +56,4 @@ export const espaciosServicio = {
     if (res.datos) guardarReservasLocal(res.datos);
     return res.datos;
   },
+};
