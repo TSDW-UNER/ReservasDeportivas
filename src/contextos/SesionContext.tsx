@@ -19,6 +19,7 @@ import {
 import { ingresarApi, obtenerPerfil, registrarApi } from "../servicios/auth";
 import { ErrorApi } from "../servicios/errorApi";
 import type { DatosRegistro, Rol, Usuario } from "../tipos/usuario";
+import { pedirBiometria } from "../servicios/biometria";
 
 export type EstadoSesion = "cargando" | "bloqueada" | "autenticada" | "anonima";
 
@@ -29,6 +30,8 @@ export interface SesionCtx {
   rol: Rol | null;
   ingresar(email: string, clave: string): Promise<void>;
   registrar(datos: DatosRegistro): Promise<void>;
+  desbloquear(): Promise<boolean>;
+  desbloquearConClave(clave: string): Promise<void>;
   salir(): Promise<void>;
 }
 
@@ -74,8 +77,8 @@ export function SesionProvider({ children }: { children: ReactNode }) {
         }
         setUsuario(perfil);
         setToken(guardado);
-        // TODO (biometría): acá pasará a "bloqueada" en vez de "autenticada"
-        setEstado("autenticada");
+        // hay sesión guardada: se pide huella antes de dejar entrar
+        setEstado("bloqueada");
       } catch {
         if (!cancelado) setEstado("anonima");
       }
@@ -111,6 +114,23 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     [iniciar],
   );
 
+   // Huella o rostro. Devuelve true si desbloqueó.
+  const desbloquear = useCallback(async () => {
+    const ok = await pedirBiometria("Desbloqueá tu sesión");
+    if (ok) setEstado("autenticada");
+    return ok;
+  }, []);
+
+  // Alternativa para dispositivos sin biometría: se vuelve a validar la contraseña.
+  const desbloquearConClave = useCallback(
+    async (clave: string) => {
+      if (!usuario) throw new ErrorApi("SIN_SESION", "No hay sesión guardada.");
+      const sesion = await ingresarApi(usuario.email, clave);
+      await iniciar(sesion.usuario, sesion.token);
+    },
+    [usuario, iniciar],
+  );
+
   const salir = useCallback(async () => {
     await borrarToken();
     borrarUsuario();
@@ -121,17 +141,13 @@ export function SesionProvider({ children }: { children: ReactNode }) {
 
   const valor = useMemo<SesionCtx>(
     () => ({
-      estado,
-      usuario,
-      token,
+      estado, usuario, token,
       rol: usuario?.rol ?? null,
-      ingresar,
-      registrar,
-      salir,
+      ingresar, registrar, salir, desbloquear, desbloquearConClave,
     }),
-    [estado, usuario, token, ingresar, registrar, salir],
-  );
+    [estado, usuario, token, ingresar, registrar, salir, desbloquear, desbloquearConClave],
 
+  );
   return (
     <SesionContext.Provider value={valor}>{children}</SesionContext.Provider>
   );
