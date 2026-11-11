@@ -1,34 +1,71 @@
 {
   "expo": {
-    "name": "ReservasDeportivas",
-    "slug": "ReservasDeportivas",
+    "name": "Reservas Deportivas",
+    "slug": "reservas-deportivas",
     "scheme": "reservasdeportivas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.reservasdeportivas.villaguay"
     },
     "android": {
+      "package": "com.reservasdeportivas.villaguay",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "REEMPLAZAR_CON_LA_API_KEY"
+        }
+      }
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar",
-      "expo-sqlite",
       "expo-secure-store",
+      "expo-sqlite",
       "expo-video",
-      "@react-native-vector-icons/ionicons"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B3A5E"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Usamos el rostro para desbloquear tu sesión."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Usamos la cámara para escanear el código QR de las reservas."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Elegí fotos del estado de las canchas."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos tu ubicación para mostrar el complejo más cercano y cómo llegar."
+        }
+      ],
+      "expo-notifications",
+      "expo-font"
     ]
   }
 }
