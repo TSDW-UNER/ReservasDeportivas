@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { TemaProvider } from "../tema/TemaProvider";
 import { useTema } from "../tema/useTema";
+import { SesionProvider } from "../contextos/SesionContext";
 
 function Navegacion() {
   const { esOscuro, colores } = useTema();
@@ -28,7 +29,9 @@ function Navegacion() {
 export default function RootLayout() {
   return (
     <TemaProvider>
-      <Navegacion />
+      <SesionProvider>
+        <Navegacion />
+      </SesionProvider>
     </TemaProvider>
   );
 }

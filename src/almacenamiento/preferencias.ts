@@ -1,4 +1,5 @@
 import Storage from "expo-sqlite/kv-store";
+import { Usuario } from "../tipos/usuario";
 
 const CLAVES = {
   tema: "pref:tema",
@@ -23,5 +24,32 @@ export function guardarTema(valor: PreferenciaTema): void {
     Storage.setItemSync(CLAVES.tema, valor);
   } catch {
     // no es crítico: el tema funciona igual en esta sesión
+  }
+}
+
+const CLAVE_USUARIO = "sesion:usuario";
+
+export function leerUsuario(): Usuario | null {
+  try {
+    const crudo = Storage.getItemSync(CLAVE_USUARIO);
+    return crudo ? (JSON.parse(crudo) as Usuario) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function guardarUsuario(usuario: Usuario): void {
+  try {
+    Storage.setItemSync(CLAVE_USUARIO, JSON.stringify(usuario));
+  } catch {
+    // no es crítico
+  }
+}
+
+export function borrarUsuario(): void {
+  try {
+    Storage.removeItemSync(CLAVE_USUARIO);
+  } catch {
+    // no es crítico
   }
 }

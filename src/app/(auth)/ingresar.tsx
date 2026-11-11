@@ -13,6 +13,10 @@ import * as z from "zod";
 import { Boton } from "../../componentes/Boton";
 import { CampoTexto } from "../../componentes/CampoTexto";
 import { useTema } from "../../tema/useTema";
+import { useState } from "react";
+import { Aviso } from "../../componentes/Aviso";
+import { ErrorApi } from "../../servicios/errorApi";
+import { useSesion } from "../../hooks/useSesion";
 
 const schema = z.object({
   email: z.email({ message: "El email ingresado no es válido" }),
@@ -26,6 +30,10 @@ type FormData = z.infer<typeof schema>;
 export default function Ingresar() {
   const { colores } = useTema();
 
+  const { ingresar } = useSesion();
+
+  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+
   const {
     control,
     handleSubmit,
@@ -36,12 +44,24 @@ export default function Ingresar() {
     mode: "onChange",
   });
 
-  // async: cuando exista SesionContext, acá se hace await ingresar(...)
-  // y isSubmitting activa solo el spinner del botón.
+
   const login = async (data: FormData) => {
-    console.log("Datos válidos:", data);
+  setErrorGeneral(null);
+  try {
+    await ingresar(data.email, data.pass);
     router.replace("/(tabs)/perfil");
-  };
+  } catch (e) {
+    if (e instanceof ErrorApi) {
+      setErrorGeneral(
+        e.codigo === "SIN_CONEXION"
+          ? "Necesitás conexión para iniciar sesión."
+          : e.message,
+      );
+    } else {
+      setErrorGeneral("Ocurrió un error inesperado. Probá de nuevo.");
+    }
+  }
+};
 
   return (
     <SafeAreaView style={[estilos.flex, { backgroundColor: colores.fondo }]}>
@@ -92,6 +112,8 @@ export default function Ingresar() {
             )}
           />
 
+          {errorGeneral && <Aviso tipo="error" mensaje={errorGeneral} />}
+          
           <Boton
             titulo="Iniciar sesión"
             disabled={!isValid}

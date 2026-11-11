@@ -14,6 +14,10 @@ import * as z from "zod";
 import { Boton } from "../../componentes/Boton";
 import { CampoTexto } from "../../componentes/CampoTexto";
 import { useTema } from "../../tema/useTema";
+import { Aviso } from "../../componentes/Aviso";
+import { ErrorApi } from "@/servicios/errorApi";
+import { useSesion } from "@/hooks/useSesion";
+
 
 // Teléfono flexible: acepta "3455-401122", "+54 3455 401122", "(3455) 401122".
 // Solo se exige que tenga entre 8 y 13 dígitos.
@@ -49,6 +53,9 @@ type FormData = z.infer<typeof schema>;
 
 export default function Registrar() {
   const { colores } = useTema();
+
+  const { registrar: crearCuenta } = useSesion();
+
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
   const {
@@ -74,10 +81,23 @@ export default function Registrar() {
   const registrar = async (data: FormData) => {
     setErrorGeneral(null);
     try {
-      console.log("Registro válido:", data);
+      await crearCuenta({
+        nombre: data.nombre,
+        email: data.email,
+        telefono: data.telefono,
+        clave: data.pass,
+      });
       router.replace("/(tabs)/perfil");
-    } catch {
-      setErrorGeneral("No pudimos crear la cuenta. Probá de nuevo.");
+    } catch (e) {
+      if (e instanceof ErrorApi) {
+        setErrorGeneral(
+          e.codigo === "SIN_CONEXION"
+            ? "Necesitás conexión para crear la cuenta."
+            : e.message,
+        );
+      } else {
+        setErrorGeneral("No pudimos crear la cuenta. Probá de nuevo.");
+      }
     }
   };
 
@@ -184,11 +204,7 @@ export default function Registrar() {
             )}
           />
 
-          {errorGeneral && (
-            <Text style={[estilos.errorGeneral, { color: colores.error }]}>
-              {errorGeneral}
-            </Text>
-          )}
+          {errorGeneral && <Aviso tipo="error" mensaje={errorGeneral} />}
 
           <Boton
             titulo="Crear cuenta"
@@ -214,6 +230,5 @@ export default function Registrar() {
 const estilos = StyleSheet.create({
   flex: { flex: 1 },
   contenido: { padding: 16, paddingBottom: 48, flexGrow: 1 },
-  errorGeneral: { marginBottom: 12, fontSize: 14 },
   enlace: { alignItems: "center", paddingVertical: 12 },
 });
