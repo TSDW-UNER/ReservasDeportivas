@@ -59,7 +59,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
           perfil = await obtenerPerfil(guardado);
           guardarUsuario(perfil);
         } catch (e) {
-          if (e instanceof ErrorApi && e.codigo === "TOKEN_INVALIDO") {
+          if (e instanceof ErrorApi && e.codigo === "NO_AUTENTICADO") {
             // token vencido o inválido: se descarta
             await borrarToken();
             borrarUsuario();

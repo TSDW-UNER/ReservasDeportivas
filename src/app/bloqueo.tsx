@@ -57,7 +57,9 @@ export default function Bloqueo() {
         e instanceof ErrorApi
           ? e.codigo === "SIN_CONEXION"
             ? "Necesitás conexión para verificar tu contraseña."
-            : "Contraseña incorrecta."
+            : e.codigo === "CREDENCIALES_INVALIDAS"
+              ? "Contraseña incorrecta."
+              : e.message
           : "Ocurrió un error. Probá de nuevo.",
       );
     } finally {

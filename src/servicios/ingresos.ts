@@ -1,54 +1,78 @@
-import {
-  ESPACIOS_CONTROL,
-  NOMBRES_USUARIOS,
-  RESERVAS_INGRESO,
-  TURNOS_INGRESO,
-} from "../mocks/ingresos";
+import type { Espacio } from "../tipos/espacio";
 import type { Reserva } from "../tipos/reserva";
 import type { Turno } from "../tipos/turno";
-import { ErrorApi } from "./errorApi";
+import type { Usuario } from "../tipos/usuario";
+import { fechaLocal } from "../utils/fechas";
+import { pedir } from "./http";
 
-// Copias en memoria: los cambios duran hasta recargar la app.
-const reservas = RESERVAS_INGRESO.map((r) => ({ ...r }));
-const turnos = TURNOS_INGRESO.map((t) => ({ ...t }));
+export const listarEspacios = () => pedir<Espacio[]>("/espacios");
 
-const demora = (ms = 300) => new Promise<void>((r) => setTimeout(r, ms));
+// Valida Y registra la llegada. Los errores (CODIGO_DE_OTRO_DIA, FUERA_DE_HORARIO, etc.)
+// llegan como ErrorApi con el mensaje del servidor.
+export const registrarIngreso = (codigoQr: string, espacioId: string) =>
+  pedir<Reserva>("/ingresos", { metodo: "POST", cuerpo: { codigoQr, espacioId } });
 
-export interface DatosReserva {
+export const marcarAusente = (reservaId: string) =>
+  pedir<Reserva>(`/reservas/${reservaId}/ausente`, { metodo: "POST" });
+
+// Códigos que significan "el código es real pero no corresponde ahora/acá".
+// El resto (inexistente, cancelada, ausente, error) es un rechazo más grave.
+const ADVERTENCIAS = new Set([
+  "CODIGO_DE_OTRO_DIA",
+  "CODIGO_DE_OTRO_ESPACIO",
+  "FUERA_DE_HORARIO",
+  "INGRESO_YA_REGISTRADO",
+]);
+
+export type Gravedad = "error" | "advertencia";
+
+export const gravedadIngreso = (codigo: string): Gravedad =>
+  ADVERTENCIAS.has(codigo) ? "advertencia" : "error";
+
+// Datos para mostrar en la tarjeta. El ingreso ya está registrado, así que si algo
+// falla acá no se bloquea nada: se muestra lo que haya.
+export async function detallesIngreso(reserva: Reserva) {
+  const [turno, titular] = await Promise.all([
+    pedir<Turno[]>(`/espacios/${reserva.espacioId}/turnos?fecha=${fechaLocal()}`)
+      .then((ts) => ts.find((t) => t.id === reserva.turnoId) ?? null)
+      .catch(() => null),
+    pedir<Usuario>(`/usuarios/${reserva.usuarioId}`)
+      .then((u) => u.nombre)
+      .catch(() => null),
+  ]);
+  return { turno, titular };
+}
+
+export interface ReservaPendiente {
   reserva: Reserva;
-  turno: Turno;
-  titular: string;
+  turno: Turno | null;
+  titular: string | null;
 }
 
-export const listarEspaciosControl = () => ESPACIOS_CONTROL;
+// Reservas confirmadas de hoy en una cancha (las que todavía no ingresaron),
+// con su horario y el nombre del titular.
+export async function reservasPendientes(espacioId: string): Promise<ReservaPendiente[]> {
+  const fecha = fechaLocal();
+  const [reservas, turnos] = await Promise.all([
+    pedir<Reserva[]>(`/reservas?fecha=${fecha}&espacioId=${espacioId}&estado=confirmada`),
+    pedir<Turno[]>(`/espacios/${espacioId}/turnos?fecha=${fecha}`),
+  ]);
 
-export function nombreEspacio(id: string): string {
-  return ESPACIOS_CONTROL.find((e) => e.id === id)?.nombre ?? "otra cancha";
-}
+  const nombres = new Map<string, string | null>();
+  await Promise.all(
+    [...new Set(reservas.map((r) => r.usuarioId))].map(async (id) => {
+      nombres.set(
+        id,
+        await pedir<Usuario>(`/usuarios/${id}`).then((u) => u.nombre).catch(() => null),
+      );
+    }),
+  );
 
-// null = el código no corresponde a ninguna reserva
-export async function buscarPorCodigo(codigo: string): Promise<DatosReserva | null> {
-  await demora();
-  const reserva = reservas.find((r) => r.codigoQr === codigo);
-  if (!reserva) return null;
-  const turno = turnos.find((t) => t.id === reserva.turnoId);
-  if (!turno) return null;
-  return { reserva, turno, titular: NOMBRES_USUARIOS[reserva.usuarioId] ?? "Sin nombre" };
-}
-
-export async function marcarPresente(reservaId: string): Promise<Reserva> {
-  await demora();
-  const r = reservas.find((x) => x.id === reservaId);
-  if (!r) throw new ErrorApi("RESERVA_NO_ENCONTRADA", "La reserva no existe.");
-  r.estado = "cumplida";
-  r.ingresoEn = new Date().toISOString(); // ISO con zona (UTC, "Z")
-  return { ...r };
-}
-
-export async function marcarAusente(reservaId: string): Promise<Reserva> {
-  await demora();
-  const r = reservas.find((x) => x.id === reservaId);
-  if (!r) throw new ErrorApi("RESERVA_NO_ENCONTRADA", "La reserva no existe.");
-  r.estado = "ausente";
-  return { ...r };
+  return reservas
+    .map((reserva) => ({
+      reserva,
+      turno: turnos.find((t) => t.id === reserva.turnoId) ?? null,
+      titular: nombres.get(reserva.usuarioId) ?? null,
+    }))
+    .sort((a, b) => (a.turno?.inicio ?? "").localeCompare(b.turno?.inicio ?? ""));
 }

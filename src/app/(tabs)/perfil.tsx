@@ -171,6 +171,11 @@ export default function Perfil() {
             titulo="Escanear ingresos"
             onPress={() => router.push("/(gestion)/escanear")}
           />
+          <Boton
+            titulo="Marcar ausentes"
+            variante="secundario"
+            onPress={() => router.push("/(gestion)/ausentes")}
+          />
         </View>
       )}
 
