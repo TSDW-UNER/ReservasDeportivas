@@ -14,7 +14,7 @@
     "android": {
       "package": "com.reservasdeportivas.villaguay",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B3A5E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -65,7 +65,8 @@
         }
       ],
       "expo-notifications",
-      "expo-font"
+      "expo-font",
+      "expo-status-bar"
     ]
   }
 }
