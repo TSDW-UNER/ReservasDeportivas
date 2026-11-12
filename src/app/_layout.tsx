@@ -29,9 +29,7 @@ function Navegacion() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="dev" />
 
-        {/* Público: se puede mirar sin cuenta, pero no con la sesión bloqueada */}
         <Stack.Protected guard={estado !== "bloqueada"}>
           <Stack.Screen name="(tabs)" />
         </Stack.Protected>
@@ -46,6 +44,7 @@ function Navegacion() {
 
         <Stack.Protected guard={estado === "autenticada" && esGestor}>
           <Stack.Screen name="(gestion)/escanear" />
+          <Stack.Screen name="(gestion)/ausentes" />
         </Stack.Protected>
       </Stack>
       <StatusBar style={esOscuro ? "light" : "dark"} />
