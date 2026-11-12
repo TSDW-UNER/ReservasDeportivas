@@ -1,7 +1,7 @@
 import { useColorScheme } from "react-native";
 
-// PROVISORIO (Integrante 2): tokens de color hasta que el tema del equipo llegue a master.
-// Se reemplaza por useTema() y se elimina este archivo.
+// PROVISORIO: tokens de color hasta que el tema final llegue a master
+// Despues lo reemplazamos por useTema() y se elimina este archivo
 const claro = {
   fondo: "#F2F4F7",
   tarjeta: "#FFFFFF",
