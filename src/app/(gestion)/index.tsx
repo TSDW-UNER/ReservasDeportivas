@@ -10,7 +10,6 @@ import {
   View,
 } from "react-native";
 
-import { espaciosFalsos, reservasFijasFalsas } from "../../componentes/espacios/datosFalsos";
 import { FiltroChips } from "../../componentes/espacios/FiltroChips";
 import { EditorPrecio } from "../../componentes/espacios/gestion/EditorPrecio";
 import {
@@ -21,19 +20,19 @@ import { ListaReservasFijas } from "../../componentes/espacios/gestion/ListaRese
 import { Seccion } from "../../componentes/espacios/gestion/Seccion";
 import { useColoresProvisorios } from "../../componentes/espacios/temaProvisorio";
 import { useSesion } from "../../hooks/useSesion";
-import type { Bloqueo, Rol } from "../../tipos";
+import type { Bloqueo, Espacio, ReservaFija, Rol } from "../../tipos";
+import {
+  actualizarPrecioEspacio,
+  listarEspacios,
+} from "../../servicios/espacios";
 import {
   crearBloqueo,
   eliminarBloqueo,
   listarBloqueos,
 } from "../../servicios/bloqueos";
+import { listarReservasFijas } from "../../servicios/reservasFijas";
 
 const ROLES_CON_ACCESO: Rol[] = ["encargado", "administrador"];
-
-const OPCIONES_ESPACIO = espaciosFalsos.map(({ id, nombre }) => ({
-  id,
-  etiqueta: nombre,
-}));
 
 function sumarUnaHora(hora: string): string {
   const horaFinal = Number(hora.slice(0, 2)) + 1;
@@ -53,16 +52,59 @@ export default function GestionScreen() {
 function PanelGestion() {
   const colores = useColoresProvisorios();
 
-  const [espacioId, setEspacioId] = useState(espaciosFalsos[0].id);
-  const [precios, setPrecios] = useState<Record<string, number>>({});
+  const [espacios, setEspacios] = useState<Espacio[]>([]);
+  const [reservasFijas, setReservasFijas] = useState<ReservaFija[]>([]);
+  const [espacioId, setEspacioId] = useState("");
+
+  const [cargandoDatos, setCargandoDatos] = useState(true);
+  const [errorDatos, setErrorDatos] = useState<string | null>(null);
+
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
-  const [cargandoBloqueos, setCargandoBloqueos] = useState(true);
+  const [cargandoBloqueos, setCargandoBloqueos] = useState(false);
   const [errorBloqueos, setErrorBloqueos] = useState<string | null>(null);
 
-  const espacio =
-    espaciosFalsos.find((e) => e.id === espacioId) ?? espaciosFalsos[0];
+  const cargarDatos = useCallback(async () => {
+    setCargandoDatos(true);
+    setErrorDatos(null);
+
+    try {
+      const [resultadoEspacios, resultadoFijas] = await Promise.all([
+        listarEspacios(),
+        listarReservasFijas(),
+      ]);
+
+      const espaciosActivos = resultadoEspacios.datos.filter(
+        (espacio) => espacio.activo,
+      );
+
+      setEspacios(espaciosActivos);
+      setReservasFijas(resultadoFijas);
+
+      setEspacioId((actual) => {
+        if (espaciosActivos.some((e) => e.id === actual)) {
+          return actual;
+        }
+
+        return espaciosActivos[0]?.id ?? "";
+      });
+    } catch (e) {
+      setErrorDatos(
+        e instanceof Error
+          ? e.message
+          : "No se pudieron cargar los datos de gestión.",
+      );
+    } finally {
+      setCargandoDatos(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargarDatos();
+  }, [cargarDatos]);
 
   const cargarBloqueos = useCallback(async () => {
+    if (!espacioId) return;
+
     setCargandoBloqueos(true);
     setErrorBloqueos(null);
 
@@ -116,9 +158,11 @@ function PanelGestion() {
             void (async () => {
               try {
                 await eliminarBloqueo(id);
+
                 setBloqueos((actuales) =>
                   actuales.filter((b) => b.id !== id),
                 );
+
                 setErrorBloqueos(null);
               } catch (e) {
                 Alert.alert(
@@ -135,9 +179,71 @@ function PanelGestion() {
     );
   };
 
+  const guardarPrecio = async (precio: number) => {
+    if (!espacioId) return;
+
+    await actualizarPrecioEspacio(espacioId, precio);
+
+    setEspacios((actuales) =>
+      actuales.map((espacio) =>
+        espacio.id === espacioId
+          ? { ...espacio, precioPorHora: precio }
+          : espacio,
+      ),
+    );
+  };
+
+  const opcionesEspacio = espacios.map(({ id, nombre }) => ({
+    id,
+    etiqueta: nombre,
+  }));
+
+  const espacio = espacios.find((e) => e.id === espacioId);
+
   const bloqueosDelEspacio = bloqueos.filter(
-    (b) => b.espacioId === espacio.id,
+    (b) => b.espacioId === espacioId,
   );
+
+  const fijasDelEspacio = reservasFijas.filter(
+    (r) => r.espacioId === espacioId,
+  );
+
+  if (cargandoDatos) {
+    return (
+      <View style={[estilos.centrado, { backgroundColor: colores.fondo }]}>
+        <ActivityIndicator color={colores.primario} size="large" />
+        <Text style={{ color: colores.textoSecundario }}>
+          Cargando datos de gestión...
+        </Text>
+      </View>
+    );
+  }
+
+  if (errorDatos) {
+    return (
+      <View style={[estilos.centrado, { backgroundColor: colores.fondo }]}>
+        <Text style={{ color: colores.error, textAlign: "center" }}>
+          {errorDatos}
+        </Text>
+
+        <Pressable onPress={() => void cargarDatos()}>
+          <Text style={{ color: colores.primario, fontWeight: "700" }}>
+            Reintentar
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!espacio) {
+    return (
+      <View style={[estilos.centrado, { backgroundColor: colores.fondo }]}>
+        <Text style={{ color: colores.textoSecundario }}>
+          No hay espacios disponibles para gestionar.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -146,8 +252,8 @@ function PanelGestion() {
       keyboardShouldPersistTaps="handled"
     >
       <FiltroChips
-        opciones={OPCIONES_ESPACIO}
-        seleccionado={espacio.id}
+        opciones={opcionesEspacio}
+        seleccionado={espacioId}
         alSeleccionar={(id) => id && setEspacioId(id)}
       />
 
@@ -166,6 +272,7 @@ function PanelGestion() {
         ) : errorBloqueos ? (
           <View style={estilos.mensaje}>
             <Text style={{ color: colores.error }}>{errorBloqueos}</Text>
+
             <Pressable onPress={() => void cargarBloqueos()}>
               <Text style={{ color: colores.primario, fontWeight: "700" }}>
                 Reintentar
@@ -192,6 +299,7 @@ function PanelGestion() {
                     ? `${b.inicio} a ${b.fin}`
                     : "Día completo"}
                 </Text>
+
                 <Text style={{ color: colores.textoSecundario }}>
                   {b.motivo}
                 </Text>
@@ -214,24 +322,13 @@ function PanelGestion() {
       <Seccion titulo="Precio por hora">
         <EditorPrecio
           key={espacio.id}
-          precioActual={
-            precios[espacio.id] ?? espacio.precioPorHora
-          }
-          alGuardar={(precio) =>
-            setPrecios((previos) => ({
-              ...previos,
-              [espacio.id]: precio,
-            }))
-          }
+          precioActual={espacio.precioPorHora}
+          alGuardar={guardarPrecio}
         />
       </Seccion>
 
       <Seccion titulo="Reservas fijas">
-        <ListaReservasFijas
-          reservas={reservasFijasFalsas.filter(
-            (r) => r.espacioId === espacio.id,
-          )}
-        />
+        <ListaReservasFijas reservas={fijasDelEspacio} />
       </Seccion>
     </ScrollView>
   );
@@ -256,12 +353,16 @@ function AccesoRestringido() {
 }
 
 const estilos = StyleSheet.create({
-  contenido: { padding: 16, gap: 14 },
+  contenido: {
+    padding: 16,
+    gap: 14,
+  },
   centrado: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+    gap: 12,
   },
   subtitulo: {
     fontSize: 15,
