@@ -1,20 +1,44 @@
-// @ts-ignore
+
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { espaciosFalsos } from "../../componentes/espacios/datosFalsos";
+
+import { EstadoCargando, EstadoError, EstadoVacio } from "../../componentes/EstadosComunes";
 import { FichaEspacio } from "../../componentes/espacios/FichaEspacio";
+import { useCarga } from "../../hooks/useCarga";
+import { obtenerEspacio } from "../../servicios/espacios";
 import { useColoresProvisorios } from "../../componentes/espacios/temaProvisorio";
 
 export default function EspacioScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colores = useColoresProvisorios();
-  const espacio = espaciosFalsos.find((e) => e.id === id);
+
+  const cargaEspacio = useCarga(
+    () => obtenerEspacio(id),
+    [id],
+  );
+
+  const espacio = cargaEspacio.datos?.datos ?? null;
+
+  if (cargaEspacio.cargando) {
+    return <EstadoCargando mensaje="Cargando espacio..." />;
+  }
+
+  if (cargaEspacio.error) {
+    return (
+      <EstadoError
+        mensaje={cargaEspacio.error.message}
+        onReintentar={cargaEspacio.recargar}
+      />
+    );
+  }
 
   if (!espacio) {
     return (
-      <View style={[estilos.centrado, { backgroundColor: colores.fondo }]}>
-        <Text style={{ color: colores.textoSecundario, fontSize: 16 }}>No encontramos este espacio.</Text>
-      </View>
+      <EstadoVacio
+        icono="🔎"
+        titulo="Espacio no encontrado"
+        mensaje="No encontramos este espacio. Puede que ya no esté disponible."
+      />
     );
   }
 
@@ -22,5 +46,10 @@ export default function EspacioScreen() {
 }
 
 const estilos = StyleSheet.create({
-  centrado: { flex: 1, alignItems: "center", justifyContent: "center", padding: 16 },
+  centrado: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
 });

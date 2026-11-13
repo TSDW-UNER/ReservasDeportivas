@@ -76,17 +76,28 @@ export async function pedir<T>(
     // La respuesta no contenía JSON válido.
   }
 
-  // Manejo de errores de la API.
-  if (!res.ok) {
-    const error = (
-      json as Partial<RespuestaError> | null
-    )?.error;
+// Manejo de errores de la API.
+if (!res.ok) {
+  console.error(
+    "[ERROR API]",
+    metodo,
+    ruta,
+    "HTTP:",
+    res.status,
+    "Respuesta:",
+    JSON.stringify(json),
+  );
 
-    throw new ErrorApi(
-      error?.codigo ?? "ERROR_INTERNO",
-      error?.mensaje ?? "Algo salió mal. Probá de nuevo en un rato.",
-    );
-  }
+  const error = (
+    json as Partial<RespuestaError> | null
+  )?.error;
+
+  throw new ErrorApi(
+    error?.codigo ?? `HTTP_${res.status}`,
+    error?.mensaje ??
+      `Error HTTP ${res.status}. Revisá la consola de Expo.`,
+  );
+}
 
   // Validar el formato esperado: { datos: ... }
   if (
