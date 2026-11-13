@@ -29,21 +29,23 @@
     "react-hook-form": "^7.91.0",
     "react-native": "0.88.1",
     "react-native-maps": "1.29.11",
+    "react-native-qrcode-svg": "^6.3.54",
     "react-native-safe-area-context": "~5.11.1",
     "react-native-screens": "~4.30.1",
     "react-native-svg": "15.16.0",
-    "undefined": "\\",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "typecheck": "tsc --noEmit",
+    "verificar": "tsx scripts/verificar-dominio.ts && tsx scripts/verificar-mocks.ts && tsx scripts/verificar-fase2.ts"
   },
   "private": true
 }

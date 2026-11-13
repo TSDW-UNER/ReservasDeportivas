@@ -1,5 +1,6 @@
+import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { CampoTexto } from "../../componentes/espacios/CampoTexto";
 import { deportesFalsos, espaciosFalsos } from "../../componentes/espacios/datosFalsos";
 import { FiltroChips, type OpcionFiltro } from "../../componentes/espacios/FiltroChips";
@@ -56,7 +57,15 @@ export default function EspaciosScreen() {
       contentContainerStyle={estilos.lista}
       data={espacios}
       keyExtractor={(e) => e.id}
-      renderItem={({ item }) => <TarjetaEspacio espacio={item} />}
+      renderItem={({ item }) => (
+        <Pressable
+          onPress={() => router.push({ pathname: "/espacio/[id]", params: { id: item.id } })}
+          accessibilityRole="button"
+          accessibilityLabel={`Ver ${item.nombre}`}
+        >
+          <TarjetaEspacio espacio={item} />
+        </Pressable>
+      )}
       ListHeaderComponent={filtros}
       ListEmptyComponent={
         <Text style={[estilos.vacio, { color: colores.textoSecundario }]}>

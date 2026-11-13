@@ -7,16 +7,16 @@ import { FormularioBloqueo, type Bloqueo } from "../../componentes/espacios/gest
 import { ListaReservasFijas } from "../../componentes/espacios/gestion/ListaReservasFijas";
 import { Seccion } from "../../componentes/espacios/gestion/Seccion";
 import { useColoresProvisorios } from "../../componentes/espacios/temaProvisorio";
+import { useSesion } from "../../hooks/useSesion";
+import type { Rol } from "../../tipos";
 
-type Rol = "jugador" | "encargado" | "administrador";
-
-const ROL_ACTUAL: Rol = "administrador";
 const ROLES_CON_ACCESO: Rol[] = ["encargado", "administrador"];
 
 const OPCIONES_ESPACIO = espaciosFalsos.map(({ id, nombre }) => ({ id, etiqueta: nombre }));
 
 export default function GestionScreen() {
-  return ROLES_CON_ACCESO.includes(ROL_ACTUAL) ? <PanelGestion /> : <AccesoRestringido />;
+  const { rol } = useSesion();
+  return rol && ROLES_CON_ACCESO.includes(rol) ? <PanelGestion /> : <AccesoRestringido />;
 }
 
 function PanelGestion() {

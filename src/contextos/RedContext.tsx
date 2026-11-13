@@ -1,23 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { hayConexionInternet } from '../db/baseDatos';
+import { useNetworkState } from "expo-network";
+import { createContext, useContext, type ReactNode } from "react";
 
 const RedContext = createContext<boolean>(true);
 
-export function RedProvider({ children }: { children: React.ReactNode }) {
-  const [isOnline, setIsOnline] = useState<boolean>(true);
+// Estado de la red EN VIVO (no una sola lectura al arrancar): cambia cuando
+// se corta o vuelve la conexión. Mientras se desconoce, se asume que hay red.
+export function RedProvider({ children }: { children: ReactNode }) {
+  const estado = useNetworkState();
+  const hayRed = estado.isConnected !== false && estado.isInternetReachable !== false;
 
-  useEffect(() => {
-    // Chequea la conexión al iniciar usando la función que armamos en la base de datos
-    hayConexionInternet().then((estado) => {
-      setIsOnline(estado);
-    });
-  }, []);
-
-  return (
-    <RedContext.Provider value={isOnline}>
-      {children}
-    </RedContext.Provider>
-  );
+  return <RedContext.Provider value={hayRed}>{children}</RedContext.Provider>;
 }
 
 export const useRed = () => useContext(RedContext);

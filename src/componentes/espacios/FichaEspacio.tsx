@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MapaEspacios } from "../mapa/MapaEspacios";
@@ -42,6 +43,10 @@ export function FichaEspacio({ espacio }: Props) {
         <Text style={[estilos.precio, { color: colores.primario }]}>
           {formatearPrecioPorHora(espacio.precioPorHora)}
         </Text>
+        <BotonPrimario
+          texto="Ver disponibilidad y reservar"
+          alPresionar={() => router.push({ pathname: "/disponibilidad/[espacioId]", params: { espacioId: espacio.id } })}
+        />
       </View>
 
       <View style={[estilos.seccion, estilos.reglas, { backgroundColor: colores.secundario, borderColor: colores.primario }]}>

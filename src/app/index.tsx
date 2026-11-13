@@ -6,5 +6,5 @@ export default function Index() {
 
   if (estado === "cargando") return null;
   if (estado === "bloqueada") return <Redirect href="/bloqueo" />;
-  return <Redirect href="/(tabs)/perfil" />;
+  return <Redirect href="/(tabs)/espacios" />;
 }
