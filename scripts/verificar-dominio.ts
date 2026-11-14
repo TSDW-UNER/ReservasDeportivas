@@ -125,9 +125,11 @@ eq("turno bloqueado", (v(lluvia[0]) as { codigo: string }).codigo, "TURNO_BLOQUE
 eq("turno pasado", (v(manana[0]) as { codigo: string }).codigo, "TURNO_PASADO");
 eq("fija = ocupado", (v(t21) as { codigo: string }).codigo, "TURNO_OCUPADO");
 eq("cantidad 0", (v(libre, { cantidadPersonas: 0 }) as { codigo: string }).codigo, "CANTIDAD_INVALIDA");
+eq("más personas que la capacidad", (v(libre, { cantidadPersonas: 11 }) as { codigo: string }).codigo, "CAPACIDAD_EXCEDIDA");
+eq("justo la capacidad (10) se puede", v(libre, { cantidadPersonas: 10 }), { ok: true });
 eq("espacio inactivo", (v(libre, { espacio: { ...espacio, activo: false } }) as { codigo: string }).codigo, "ESPACIO_INACTIVO");
 eq("2 activas: puede reservar", v(libre, { reservasDelUsuario: [futura(1), futura(2)] }), { ok: true });
-eq("3 activas: bloquea", (v(libre, { reservasDelUsuario: [futura(1), futura(2), futura(3)] }) as { codigo: string }).codigo, "LIMITE_RESERVAS");
+eq("3 activas: bloquea", (v(libre, { reservasDelUsuario: [futura(1), futura(2), futura(3)] }) as { codigo: string }).codigo, "LIMITE_DE_RESERVAS");
 eq("canceladas y pasadas no cuentan", contarReservasActivas([
   futura(1), res({ id: "x", estado: "cancelada" }), res({ id: "y", estado: "cumplida" }),
   res({ id: "z", cancelableHasta: "2026-09-10T15:00:00-03:00" }),

@@ -19,7 +19,7 @@ interface Props {
 // Barra inferior: tocás un turno libre (1er toque) y "Reservar" (2º toque).
 export function PanelReservar({ turno, espacio, nombreDeporte, cantidad, onCantidad, onReservar, cargando }: Props) {
   const { colores } = useTema();
-  const maximo = Math.max(espacio.capacidad, 1) * 2;
+  const maximo = Math.max(espacio.capacidad, 1);
 
   return (
     <View style={[estilos.panel, { backgroundColor: colores.superficie, borderColor: colores.borde }]}>
