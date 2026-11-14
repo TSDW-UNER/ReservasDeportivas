@@ -59,7 +59,7 @@ const dia = (id: string, f: string) =>
 
   // --- límite de 3 activas (ya tenía 2 + la de arriba = 3) ---
   const otro = construirGrilla({ espacio: esp("esp-07"), fecha: f5, turnos: turnosDelDia("esp-07", f5, ahora), fijas: RESERVAS_FIJAS, ahora }).find((t) => t.reservable)!;
-  eq("4ta reserva activa: LIMITE_RESERVAS", await codigoDeError(() => crearReservaFalsa({ ...datos, espacioId: "esp-07", inicio: otro.inicio }, ahora)), "LIMITE_RESERVAS");
+  eq("4ta reserva activa: LIMITE_RESERVAS", await codigoDeError(() => crearReservaFalsa({ ...datos, espacioId: "esp-07", inicio: otro.inicio }, ahora)), "LIMITE_DE_RESERVAS");
 
   // --- cancelar ---
   eq("cancelar en plazo", cancelarReservaFalsa(r.id, "usr-207", ahora).estado, "cancelada");

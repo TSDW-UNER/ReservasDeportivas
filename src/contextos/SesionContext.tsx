@@ -11,6 +11,7 @@ import {
   guardarUsuario,
   leerUsuario,
 } from "../almacenamiento/preferencias";
+import { borrarDatosLocales } from "../db/baseDatos";
 import {
   borrarToken,
   guardarToken,
@@ -134,6 +135,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   const salir = useCallback(async () => {
     await borrarToken();
     borrarUsuario();
+    borrarDatosLocales(); // no dejar reservas ni QR de esta persona en el teléfono
     setUsuario(null);
     setToken(null);
     setEstado("anonima");
