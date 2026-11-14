@@ -39,6 +39,7 @@ function Navegacion() {
     headerTintColor: colores.texto,
     headerTitleStyle: { color: colores.texto },
     headerShadowVisible: false,
+    headerBackButtonDisplayMode: "minimal",
   } as const;
 
   return (
@@ -54,12 +55,21 @@ function Navegacion() {
 
         <Stack.Protected guard={estado !== "bloqueada"}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="espacio/[id]" options={{ ...conEncabezado, title: "Espacio" }} />
-          <Stack.Screen name="disponibilidad/[espacioId]" options={{ ...conEncabezado, title: "Disponibilidad" }} />
+          <Stack.Screen
+            name="espacio/[id]"
+            options={{ ...conEncabezado, title: "Espacio" }}
+          />
+          <Stack.Screen
+            name="disponibilidad/[espacioId]"
+            options={{ ...conEncabezado, title: "Disponibilidad" }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={estado === "autenticada"}>
-          <Stack.Screen name="reserva/[id]" options={{ ...conEncabezado, title: "Mi reserva" }} />
+          <Stack.Screen
+            name="reserva/[id]"
+            options={{ ...conEncabezado, title: "Mi reserva" }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={estado === "bloqueada"}>

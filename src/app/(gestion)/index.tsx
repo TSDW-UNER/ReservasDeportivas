@@ -16,6 +16,10 @@ import {
   FormularioBloqueo,
   type DatosFormularioBloqueo,
 } from "../../componentes/espacios/gestion/FormularioBloqueo";
+import {
+  FormularioReservaFija,
+  type DatosFormularioReservaFija,
+} from "../../componentes/espacios/gestion/FormularioReservaFija";
 import { ListaReservasFijas } from "../../componentes/espacios/gestion/ListaReservasFijas";
 import { Seccion } from "../../componentes/espacios/gestion/Seccion";
 import { useColoresProvisorios } from "../../componentes/espacios/temaProvisorio";
@@ -30,7 +34,12 @@ import {
   eliminarBloqueo,
   listarBloqueos,
 } from "../../servicios/bloqueos";
-import { listarReservasFijas } from "../../servicios/reservasFijas";
+import {
+  actualizarReservaFija,
+  crearReservaFija,
+  eliminarReservaFija,
+  listarReservasFijas,
+} from "../../servicios/reservasFijas";
 
 const ROLES_CON_ACCESO: Rol[] = ["encargado", "administrador"];
 
@@ -51,10 +60,15 @@ export default function GestionScreen() {
 
 function PanelGestion() {
   const colores = useColoresProvisorios();
+  const { rol } = useSesion();
+  const esAdministrador = rol === "administrador";
 
   const [espacios, setEspacios] = useState<Espacio[]>([]);
   const [reservasFijas, setReservasFijas] = useState<ReservaFija[]>([]);
   const [espacioId, setEspacioId] = useState("");
+
+  const [reservaEnEdicion, setReservaEnEdicion] =
+    useState<ReservaFija | null>(null);
 
   const [cargandoDatos, setCargandoDatos] = useState(true);
   const [errorDatos, setErrorDatos] = useState<string | null>(null);
@@ -193,6 +207,70 @@ function PanelGestion() {
     );
   };
 
+  const guardarReservaFija = async (
+    datos: DatosFormularioReservaFija,
+  ) => {
+    if (reservaEnEdicion) {
+      const actualizada = await actualizarReservaFija(
+        reservaEnEdicion.id,
+        datos,
+      );
+
+      setReservasFijas((actuales) =>
+        actuales.map((reserva) =>
+          reserva.id === actualizada.id ? actualizada : reserva,
+        ),
+      );
+
+      setReservaEnEdicion(null);
+      return;
+    }
+
+    const nueva = await crearReservaFija(datos);
+
+    setReservasFijas((actuales) => [...actuales, nueva]);
+  };
+
+  const confirmarEliminarReservaFija = (id: string) => {
+    Alert.alert(
+      "Dar de baja reserva fija",
+      "¿Seguro que querés dar de baja esta reserva fija? Ya no ocupará ese horario en las semanas siguientes.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Dar de baja",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await eliminarReservaFija(id);
+
+                setReservasFijas((actuales) =>
+                  actuales.map((reserva) =>
+                    reserva.id === id
+                      ? { ...reserva, activa: false }
+                      : reserva,
+                  ),
+                );
+
+                if (reservaEnEdicion?.id === id) {
+                  setReservaEnEdicion(null);
+                }
+              } catch (e) {
+                Alert.alert(
+                  "No se pudo dar de baja",
+                  e instanceof Error
+                    ? e.message
+                    : "Probá de nuevo más tarde.",
+                );
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   const opcionesEspacio = espacios.map(({ id, nombre }) => ({
     id,
     etiqueta: nombre,
@@ -254,7 +332,12 @@ function PanelGestion() {
       <FiltroChips
         opciones={opcionesEspacio}
         seleccionado={espacioId}
-        alSeleccionar={(id) => id && setEspacioId(id)}
+        alSeleccionar={(id) => {
+          if (id) {
+            setEspacioId(id);
+            setReservaEnEdicion(null);
+          }
+        }}
       />
 
       <Seccion titulo="Bloquear turno o día">
@@ -328,7 +411,52 @@ function PanelGestion() {
       </Seccion>
 
       <Seccion titulo="Reservas fijas">
-        <ListaReservasFijas reservas={fijasDelEspacio} />
+        {esAdministrador ? (
+          <>
+            <Text style={[estilos.subtitulo, { color: colores.texto }]}>
+              {reservaEnEdicion
+                ? "Editar reserva fija"
+                : "Nueva reserva fija"}
+            </Text>
+
+            <FormularioReservaFija
+              key={reservaEnEdicion?.id ?? `nueva-${espacio.id}`}
+              espacioId={espacio.id}
+              reserva={reservaEnEdicion}
+              alGuardar={guardarReservaFija}
+            />
+
+            {reservaEnEdicion && (
+              <Pressable
+                onPress={() => setReservaEnEdicion(null)}
+                style={estilos.cancelarEdicion}
+              >
+                <Text style={{ color: colores.textoSecundario }}>
+                  Cancelar edición
+                </Text>
+              </Pressable>
+            )}
+          </>
+        ) : (
+          <Text style={{ color: colores.textoSecundario }}>
+            Podés consultar las reservas fijas. La API actualmente permite
+            crearlas, editarlas y darlas de baja únicamente con una cuenta
+            administradora.
+          </Text>
+        )}
+
+        <Text style={[estilos.subtitulo, { color: colores.texto }]}>
+          Reservas registradas
+        </Text>
+
+        <ListaReservasFijas
+          reservas={fijasDelEspacio}
+          puedeGestionar={esAdministrador}
+          alEditar={esAdministrador ? setReservaEnEdicion : undefined}
+          alEliminar={
+            esAdministrador ? confirmarEliminarReservaFija : undefined
+          }
+        />
       </Seccion>
     </ScrollView>
   );
@@ -383,5 +511,9 @@ const estilos = StyleSheet.create({
   detalleBloqueo: {
     flex: 1,
     gap: 4,
+  },
+  cancelarEdicion: {
+    alignItems: "center",
+    paddingVertical: 10,
   },
 });
