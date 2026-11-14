@@ -1,4 +1,3 @@
-
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { Tabs } from "expo-router";
 
@@ -14,6 +13,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        sceneStyle: { backgroundColor: colores.fondo },
         tabBarActiveTintColor: colores.acento,
         tabBarInactiveTintColor: colores.textoSecundario,
         tabBarStyle: {
