@@ -14,8 +14,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-POR-LA-URL-DE-LA-API",
-        "EXPO_PUBLIC_USAR_MOCK": "true"
+"EXPO_PUBLIC_API_URL": "https://api-reservas-deportivas-jrnr.onrender.com",
+"EXPO_PUBLIC_USAR_MOCK": "false"
       }
     },
     "production": {

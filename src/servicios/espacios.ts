@@ -1,4 +1,3 @@
-
 import { guardarEspacios, leerEspacios } from "../db/baseDatos";
 import { DEPORTES, ESPACIOS } from "../mocks/datos";
 import { responder } from "../mocks/servidorFalso";
@@ -71,13 +70,10 @@ export async function actualizarPrecioEspacio(
       };
     });
   } else {
-    await pedir<unknown>(
-      `/espacios/${encodeURIComponent(id)}`,
-      {
-        metodo: "PATCH",
-        cuerpo: { precioPorHora },
-      },
-    );
+    await pedir<unknown>(`/espacios/${encodeURIComponent(id)}`, {
+      metodo: "PATCH",
+      cuerpo: { precioPorHora },
+    });
   }
 
   // Actualizamos también los espacios guardados en SQLite.
@@ -86,9 +82,7 @@ export async function actualizarPrecioEspacio(
   if (guardados.length > 0) {
     guardarEspacios(
       guardados.map((espacio) =>
-        espacio.id === id
-          ? { ...espacio, precioPorHora }
-          : espacio,
+        espacio.id === id ? { ...espacio, precioPorHora } : espacio,
       ),
     );
   }
