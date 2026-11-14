@@ -30,8 +30,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# variables de entorno locales (se copian desde .env.example)
+.env
 .env*.local
+
+# IDE
+.idea/
+.vscode/
 
 # typescript
 *.tsbuildinfo

@@ -1,66 +1,136 @@
-import * as SQLite from 'expo-sqlite';
-import { Espacio, Reserva } from '../tipos/tipos';
-import * as Network from 'expo-network';
 
-const db = SQLite.openDatabaseSync('reservas_deportivas.db');
+import * as SQLite from "expo-sqlite";
+import type { Espacio, Reserva } from "../tipos";
 
-export function inicializarBaseDatos() {
+const VERSION_ESQUEMA = 2;
+
+const db = SQLite.openDatabaseSync("reservas_deportivas.db");
+
+/** Idempotente: se puede llamar en cada arranque. */
+export function inicializarBaseDatos(): void {
+  const fila = db.getFirstSync<{ user_version: number }>("PRAGMA user_version");
+  const version = fila?.user_version ?? 0;
+
+  // Solo se rehacen las tablas originales si la base todavía no tenía esquema.
+  if (version < 1) {
+    db.execSync(`
+      DROP TABLE IF EXISTS espacios;
+      DROP TABLE IF EXISTS reservas;
+    `);
+  }
+
   db.execSync(`
     CREATE TABLE IF NOT EXISTS espacios (
       id TEXT PRIMARY KEY NOT NULL,
-      nombre TEXT,
-      deporte TEXT,
-      complejo TEXT,
-      superficie TEXT,
-      iluminacion INTEGER,
-      precioPorTurno REAL,
-      datosJson TEXT
+      datosJson TEXT NOT NULL
     );
-  `);
 
-  db.execSync(`
     CREATE TABLE IF NOT EXISTS reservas (
       id TEXT PRIMARY KEY NOT NULL,
-      usuarioId TEXT,
-      espacioId TEXT,
-      fecha TEXT,
-      horaInicio TEXT,
-      deporte TEXT,
-      estado TEXT,
-      datosJson TEXT
+      usuarioId TEXT NOT NULL,
+      estado TEXT NOT NULL,
+      cancelableHasta TEXT NOT NULL,
+      datosJson TEXT NOT NULL
     );
   `);
-}
 
-export function guardarEspaciosLocal(espacios: Espacio[]) {
-  for (const esp of espacios) {
-    db.runSync(
-      `INSERT OR REPLACE INTO espacios (id, nombre, deporte, complejo, superficie, iluminacion, precioPorTurno, datosJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
-      [esp.id, esp.nombre, esp.deporte, esp.complejo, esp.superficie, esp.iluminacion ? 1 : 0, esp.precioPorTurno, JSON.stringify(esp)]
-    );
+  // Migración v2: se agrega favoritos sin borrar las cachés existentes.
+  if (version < 2) {
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS favoritos (
+        espacioId TEXT PRIMARY KEY NOT NULL
+      );
+    `);
   }
+
+  db.execSync(`PRAGMA user_version = ${VERSION_ESQUEMA};`);
 }
 
-export function obtenerEspaciosLocal(): Espacio[] {
-  const resultados = db.getAllSync(`SELECT datosJson FROM espacios;`) as { datosJson: string }[];
-  return resultados.map(r => JSON.parse(r.datosJson));
+// ---------- espacios ----------
+
+export function guardarEspacios(espacios: Espacio[]): void {
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM espacios");
+    for (const e of espacios) {
+      db.runSync("INSERT INTO espacios (id, datosJson) VALUES (?, ?)", [
+        e.id,
+        JSON.stringify(e),
+      ]);
+    }
+  });
 }
 
-export function guardarReservasLocal(reservas: Reserva[]) {
-  for (const res of reservas) {
-    db.runSync(
-      `INSERT OR REPLACE INTO reservas (id, usuarioId, espacioId, fecha, horaInicio, deporte, estado, datosJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
-      [res.id, res.usuarioId, res.espacioId, res.fecha, res.horaInicio, res.deporte, res.estado, JSON.stringify(res)]
-    );
-  }
+export function leerEspacios(): Espacio[] {
+  return db
+    .getAllSync<{ datosJson: string }>(
+      "SELECT datosJson FROM espacios ORDER BY id",
+    )
+    .map((f) => JSON.parse(f.datosJson) as Espacio);
 }
 
-export function obtenerReservasLocal(): Reserva[] {
-  const resultados = db.getAllSync(`SELECT datosJson FROM reservas;`) as { datosJson: string }[];
-  return resultados.map(r => JSON.parse(r.datosJson));
+// ---------- reservas ----------
+
+export function guardarReserva(r: Reserva): void {
+  db.runSync(
+    "INSERT OR REPLACE INTO reservas (id, usuarioId, estado, cancelableHasta, datosJson) VALUES (?, ?, ?, ?, ?)",
+    [r.id, r.usuarioId, r.estado, r.cancelableHasta, JSON.stringify(r)],
+  );
 }
 
-export async function hayConexionInternet(): Promise<boolean> {
-  const estado = await Network.getNetworkStateAsync();
-  return Boolean(estado.isConnected && estado.isInternetReachable);
+/** Deja guardadas exactamente las reservas que informó el servidor para esa persona. */
+export function reemplazarReservasDeUsuario(
+  usuarioId: string,
+  reservas: Reserva[],
+): void {
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM reservas WHERE usuarioId = ?", [usuarioId]);
+    for (const r of reservas) guardarReserva(r);
+  });
+}
+
+export function leerReservasDeUsuario(usuarioId: string): Reserva[] {
+  return db
+    .getAllSync<{ datosJson: string }>(
+      "SELECT datosJson FROM reservas WHERE usuarioId = ? ORDER BY cancelableHasta",
+      [usuarioId],
+    )
+    .map((f) => JSON.parse(f.datosJson) as Reserva);
+}
+
+// ---------- favoritos ----------
+
+export function guardarFavorito(espacioId: string): void {
+  db.runSync("INSERT OR IGNORE INTO favoritos (espacioId) VALUES (?)", [
+    espacioId,
+  ]);
+}
+
+export function quitarFavorito(espacioId: string): void {
+  db.runSync("DELETE FROM favoritos WHERE espacioId = ?", [espacioId]);
+}
+
+export function leerFavoritos(): string[] {
+  return db
+    .getAllSync<{ espacioId: string }>(
+      "SELECT espacioId FROM favoritos ORDER BY espacioId",
+    )
+    .map((fila) => fila.espacioId);
+}
+
+export function esFavorito(espacioId: string): boolean {
+  return (
+    db.getFirstSync<{ espacioId: string }>(
+      "SELECT espacioId FROM favoritos WHERE espacioId = ?",
+      [espacioId],
+    ) !== null
+  );
+}
+
+// ---------- limpieza ----------
+
+/** Para llamar al cerrar sesión: no dejar reservas de otra persona en el teléfono. */
+export function borrarDatosLocales(): void {
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM reservas");
+  });
 }
