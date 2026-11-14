@@ -1,4 +1,5 @@
 
+import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -329,6 +330,18 @@ function PanelGestion() {
       contentContainerStyle={estilos.contenido}
       keyboardShouldPersistTaps="handled"
     >
+      <Pressable
+        onPress={() => router.push("/(gestion)/agenda")}
+        style={[
+          estilos.botonAgenda,
+          { backgroundColor: colores.primario },
+        ]}
+      >
+        <Text style={estilos.textoBotonAgenda}>
+          Consultar agenda diaria
+        </Text>
+      </Pressable>
+
       <FiltroChips
         opciones={opcionesEspacio}
         seleccionado={espacioId}
@@ -484,6 +497,16 @@ const estilos = StyleSheet.create({
   contenido: {
     padding: 16,
     gap: 14,
+  },
+  botonAgenda: {
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  textoBotonAgenda: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
   centrado: {
     flex: 1,

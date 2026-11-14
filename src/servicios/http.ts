@@ -1,4 +1,3 @@
-
 import { leerToken } from "../almacenamiento/tokenSeguro";
 import type { RespuestaError } from "../tipos/api";
 import { ErrorApi } from "./errorApi";
@@ -25,9 +24,7 @@ export async function pedir<T>(
   const { metodo = "GET", cuerpo, timeoutMs = 60000 } = opciones;
 
   const token =
-    opciones.token !== undefined
-      ? opciones.token
-      : await leerToken();
+    opciones.token !== undefined ? opciones.token : await leerToken();
 
   const controlador = new AbortController();
   const reloj = setTimeout(() => controlador.abort(), timeoutMs);
@@ -39,9 +36,7 @@ export async function pedir<T>(
       method: metodo,
       headers: {
         Accept: "application/json",
-        ...(cuerpo !== undefined
-          ? { "Content-Type": "application/json" }
-          : {}),
+        ...(cuerpo !== undefined ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
@@ -76,35 +71,30 @@ export async function pedir<T>(
     // La respuesta no contenía JSON válido.
   }
 
-// Manejo de errores de la API.
-if (!res.ok) {
-  console.error(
-    "[ERROR API]",
-    metodo,
-    ruta,
-    "HTTP:",
-    res.status,
-    "Respuesta:",
-    JSON.stringify(json),
-  );
+  // Manejo de errores de la API.
+  if (!res.ok) {
+    if (res.status >= 500) {
+      console.error(
+        "[ERROR API]",
+        metodo,
+        ruta,
+        "HTTP:",
+        res.status,
+        "Respuesta:",
+        JSON.stringify(json),
+      );
+    }
 
-  const error = (
-    json as Partial<RespuestaError> | null
-  )?.error;
+    const error = (json as Partial<RespuestaError> | null)?.error;
 
-  throw new ErrorApi(
-    error?.codigo ?? `HTTP_${res.status}`,
-    error?.mensaje ??
-      `Error HTTP ${res.status}. Revisá la consola de Expo.`,
-  );
-}
+    throw new ErrorApi(
+      error?.codigo ?? `HTTP_${res.status}`,
+      error?.mensaje ?? `Error HTTP ${res.status}. Revisá la consola de Expo.`,
+    );
+  }
 
   // Validar el formato esperado: { datos: ... }
-  if (
-    json === null ||
-    typeof json !== "object" ||
-    !("datos" in json)
-  ) {
+  if (json === null || typeof json !== "object" || !("datos" in json)) {
     throw new ErrorApi(
       "RESPUESTA_INVALIDA",
       "El servidor devolvió una respuesta con un formato inesperado.",

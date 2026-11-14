@@ -84,6 +84,7 @@ function Navegacion() {
           <Stack.Screen name="(gestion)/index" />
           <Stack.Screen name="(gestion)/escanear" />
           <Stack.Screen name="(gestion)/ausentes" />
+          <Stack.Screen name="(gestion)/agenda" />
         </Stack.Protected>
       </Stack>
       <StatusBar style={esOscuro ? "light" : "dark"} />

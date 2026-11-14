@@ -3,17 +3,29 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Aviso } from "../../componentes/Aviso";
-import { EstadoCargando, EstadoError, EstadoVacio } from "../../componentes/EstadosComunes";
+import {
+  EstadoCargando,
+  EstadoError,
+  EstadoVacio,
+} from "../../componentes/EstadosComunes";
 import { FilaTurno } from "../../componentes/grilla/FilaTurno";
 import { SelectorDia } from "../../componentes/grilla/SelectorDia";
 import { PanelReservar } from "../../componentes/reservas/PanelReservar";
-import { etiquetaDia, hoyAR, proximosDias, type TurnoGrilla } from "../../dominio";
+import {
+  etiquetaDia,
+  hoyAR,
+  proximosDias,
+  type TurnoGrilla,
+} from "../../dominio";
 import { useCarga } from "../../hooks/useCarga";
 import { useSesion } from "../../hooks/useSesion";
 import { obtenerDia } from "../../servicios/disponibilidad";
 import { ErrorApi } from "../../servicios/errorApi";
 import { listarDeportes, obtenerEspacio } from "../../servicios/espacios";
-import { pedirPermiso, programarRecordatorio } from "../../servicios/notificaciones";
+import {
+  pedirPermiso,
+  programarRecordatorio,
+} from "../../servicios/notificaciones";
 import { crearReserva, listarMisReservas } from "../../servicios/reservas";
 import { useTema } from "../../tema/useTema";
 
@@ -33,10 +45,17 @@ export default function Disponibilidad() {
   const cargaEspacio = useCarga(() => obtenerEspacio(espacioId), [espacioId]);
   const espacio = cargaEspacio.datos?.datos ?? null;
 
-  const dia = useCarga(() => (espacio ? obtenerDia(espacio, fecha) : Promise.resolve(null)), [espacio?.id, fecha]);
-  const previas = useCarga(() => (usuario ? listarMisReservas(usuario.id) : Promise.resolve(null)), [usuario?.id]);
+  const dia = useCarga(
+    () => (espacio ? obtenerDia(espacio, fecha) : Promise.resolve(null)),
+    [espacio?.id, fecha],
+  );
+  const previas = useCarga(
+    () => (usuario ? listarMisReservas(usuario.id) : Promise.resolve(null)),
+    [usuario?.id],
+  );
   const deportes = useCarga(() => listarDeportes(), []);
-  const nombreDeporte = deportes.datos?.find((d) => d.id === espacio?.deporteId)?.nombre ?? null;
+  const nombreDeporte =
+    deportes.datos?.find((d) => d.id === espacio?.deporteId)?.nombre ?? null;
 
   const cambiarDia = (nuevo: string) => {
     setFecha(nuevo);
@@ -45,10 +64,14 @@ export default function Disponibilidad() {
 
   const reservar = async () => {
     if (!usuario) {
-      Alert.alert("Necesitás una cuenta", "Para reservar tenés que iniciar sesión. Mirar la disponibilidad no la requiere.", [
-        { text: "Ahora no", style: "cancel" },
-        { text: "Ingresar", onPress: () => router.push("/(auth)/ingresar") },
-      ]);
+      Alert.alert(
+        "Necesitás una cuenta",
+        "Para reservar tenés que iniciar sesión. Mirar la disponibilidad no la requiere.",
+        [
+          { text: "Ahora no", style: "cancel" },
+          { text: "Ingresar", onPress: () => router.push("/(auth)/ingresar") },
+        ],
+      );
       return;
     }
     if (!seleccion || !espacio) return;
@@ -65,12 +88,26 @@ export default function Disponibilidad() {
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const permiso = await pedirPermiso();
-      const recordatorio = permiso && (await programarRecordatorio(reserva, espacio.nombre));
-      router.replace({ pathname: "/reserva/[id]", params: { id: reserva.id, recordatorio: recordatorio ? "si" : "no" } });
+      const recordatorio =
+        permiso && (await programarRecordatorio(reserva, espacio.nombre));
+      router.replace({
+        pathname: "/reserva/[id]",
+        params: { id: reserva.id, recordatorio: recordatorio ? "si" : "no" },
+      });
     } catch (e) {
-      const error = e instanceof ErrorApi ? e : new ErrorApi("ERROR_INTERNO", "No se pudo reservar. Probá de nuevo.");
+      const error =
+        e instanceof ErrorApi
+          ? e
+          : new ErrorApi(
+              "ERROR_INTERNO",
+              "No se pudo reservar. Probá de nuevo.",
+            );
       Alert.alert("No se pudo reservar", error.message);
-      if (error.codigo === "TURNO_OCUPADO" || error.codigo === "TURNO_BLOQUEADO") {
+      if (
+        error.codigo === "TURNO_OCUPADO" ||
+        error.codigo === "TURNO_NO_DISPONIBLE" ||
+        error.codigo === "TURNO_BLOQUEADO"
+      ) {
         setSeleccion(null);
         dia.recargar();
       }
@@ -79,9 +116,23 @@ export default function Disponibilidad() {
     }
   };
 
-  if (cargaEspacio.cargando) return <EstadoCargando mensaje="Cargando espacio..." />;
-  if (cargaEspacio.error) return <EstadoError mensaje={cargaEspacio.error.message} onReintentar={cargaEspacio.recargar} />;
-  if (!espacio) return <EstadoVacio icono="🔎" titulo="Espacio no encontrado" mensaje="Ese espacio ya no está disponible." />;
+  if (cargaEspacio.cargando)
+    return <EstadoCargando mensaje="Cargando espacio..." />;
+  if (cargaEspacio.error)
+    return (
+      <EstadoError
+        mensaje={cargaEspacio.error.message}
+        onReintentar={cargaEspacio.recargar}
+      />
+    );
+  if (!espacio)
+    return (
+      <EstadoVacio
+        icono="🔎"
+        titulo="Espacio no encontrado"
+        mensaje="Ese espacio ya no está disponible."
+      />
+    );
 
   const resumen = dia.datos?.resumen;
   const grilla = dia.datos?.grilla ?? [];
@@ -89,29 +140,54 @@ export default function Disponibilidad() {
   return (
     <View style={[estilos.pantalla, { backgroundColor: colores.fondo }]}>
       <View style={estilos.cabecera}>
-        <Text style={[estilos.titulo, { color: colores.texto }]}>{espacio.nombre}</Text>
+        <Text style={[estilos.titulo, { color: colores.texto }]}>
+          {espacio.nombre}
+        </Text>
         <Text style={{ color: colores.textoSecundario }}>
           {espacio.complejo} · {etiquetaDia(fecha)}
         </Text>
       </View>
 
-      <SelectorDia dias={dias} seleccionado={fecha} onSeleccionar={cambiarDia} />
+      <SelectorDia
+        dias={dias}
+        seleccionado={fecha}
+        onSeleccionar={cambiarDia}
+      />
 
       <ScrollView contentContainerStyle={estilos.lista}>
         {dia.cargando && <EstadoCargando mensaje="Buscando turnos..." />}
-        {dia.error && <EstadoError mensaje={dia.error.message} onReintentar={dia.recargar} />}
+        {dia.error && (
+          <EstadoError
+            mensaje={dia.error.message}
+            onReintentar={dia.recargar}
+          />
+        )}
 
         {resumen?.estado === "bloqueado" && (
           <EstadoVacio
             icono="🌧️"
             titulo="Día bloqueado"
-            mensaje={resumen.motivoBloqueo ?? "El espacio no está disponible este día."}
+            mensaje={
+              resumen.motivoBloqueo ?? "El espacio no está disponible este día."
+            }
           />
         )}
-        {resumen?.estado === "completo" && <Aviso tipo="info" mensaje="No quedan turnos libres este día. Probá con otro." />}
-        {resumen?.estado === "finalizado" && <Aviso tipo="info" mensaje="Ya pasaron todos los turnos libres de hoy." />}
+        {resumen?.estado === "completo" && (
+          <Aviso
+            tipo="info"
+            mensaje="No quedan turnos libres este día. Probá con otro."
+          />
+        )}
+        {resumen?.estado === "finalizado" && (
+          <Aviso
+            tipo="info"
+            mensaje="Ya pasaron todos los turnos libres de hoy."
+          />
+        )}
 
-        {!dia.cargando && !dia.error && resumen?.estado !== "bloqueado" &&
+        {!dia.cargando &&
+          !dia.error &&
+          resumen?.estado !== "bloqueado" &&
           grilla.map((turno) => (
             <FilaTurno
               key={turno.id}
