@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
-import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Aviso } from "../../componentes/Aviso";
 import {
@@ -53,7 +53,25 @@ export default function Disponibilidad() {
     () => (usuario ? listarMisReservas(usuario.id) : Promise.resolve(null)),
     [usuario?.id],
   );
+
   const deportes = useCarga(() => listarDeportes(), []);
+
+  // Evita repetir la carga inicial: solo actualiza al regresar a la pantalla.
+  const primerFoco = useRef(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (primerFoco.current) {
+        primerFoco.current = false;
+        return;
+      }
+
+      setSeleccion(null);
+      dia.recargar();
+      previas.recargar();
+    }, [dia.recargar, previas.recargar]),
+  );
+
   const nombreDeporte =
     deportes.datos?.find((d) => d.id === espacio?.deporteId)?.nombre ?? null;
 
@@ -164,13 +182,16 @@ export default function Disponibilidad() {
         )}
 
         {resumen?.estado === "bloqueado" && (
-          <EstadoVacio
-            icono="🌧️"
-            titulo="Día bloqueado"
-            mensaje={
-              resumen.motivoBloqueo ?? "El espacio no está disponible este día."
-            }
-          />
+          <View style={estilos.avisoBloqueado}>
+            <EstadoVacio
+              icono="🌧️"
+              titulo="Día bloqueado"
+              mensaje={
+                resumen.motivoBloqueo ??
+                "El espacio no está disponible este día."
+              }
+            />
+          </View>
         )}
         {resumen?.estado === "completo" && (
           <Aviso
@@ -218,4 +239,8 @@ const estilos = StyleSheet.create({
   cabecera: { paddingHorizontal: 16, paddingTop: 12, gap: 2 },
   titulo: { fontSize: 20, fontWeight: "700" },
   lista: { paddingHorizontal: 16, paddingBottom: 24, gap: 8 },
+  avisoBloqueado: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

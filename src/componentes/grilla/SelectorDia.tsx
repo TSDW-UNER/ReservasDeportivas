@@ -14,7 +14,11 @@ export function SelectorDia({ dias, seleccionado, onSeleccionar }: Props) {
   const hoy = hoyAR();
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={estilos.fila}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={estilos.fila}
+    >
       {dias.map((fecha) => {
         const activo = fecha === seleccionado;
         return (
@@ -25,10 +29,19 @@ export function SelectorDia({ dias, seleccionado, onSeleccionar }: Props) {
             accessibilityState={{ selected: activo }}
             style={[
               estilos.dia,
-              { backgroundColor: activo ? colores.acento : colores.superficie, borderColor: activo ? colores.acento : colores.borde },
+              {
+                backgroundColor: activo ? colores.acento : colores.superficie,
+                borderColor: activo ? colores.acento : colores.borde,
+              },
             ]}
           >
-            <Text style={{ color: activo ? colores.textoSobreAcento : colores.texto, fontWeight: "700" }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: activo ? colores.textoSobreAcento : colores.texto,
+                fontWeight: "700",
+              }}
+            >
               {fecha === hoy ? "Hoy" : etiquetaDiaCorta(fecha)}
             </Text>
           </Pressable>
@@ -39,6 +52,18 @@ export function SelectorDia({ dias, seleccionado, onSeleccionar }: Props) {
 }
 
 const estilos = StyleSheet.create({
-  fila: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  dia: { paddingHorizontal: 16, minHeight: 44, borderRadius: 22, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  fila: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    alignItems: "center",
+  },
+  dia: {
+    width: 76,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
